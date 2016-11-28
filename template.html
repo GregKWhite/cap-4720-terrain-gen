@@ -12,7 +12,7 @@
       varying vec3 vColor;
 
       void main() {
-        gl_Position = aPosition;
+        gl_Position = uMatrix * aPosition;
 
         vColor = aColor;
       }
