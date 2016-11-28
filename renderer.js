@@ -14,7 +14,68 @@ function renderSphere() {
   // Set up uniforms
   var resolutionLoc = gl.getUniformLocation(program, 'uResolution');
   gl.uniform2f(resolutionLoc, canvas.width , canvas.height);
+
+  // Initialize the webgl geometry buffer
+  var buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.enableVertexAttribArray(positionLoc)
+  gl.vertexAttribPointer(positionLoc, 3, gl.FLOAT, false, 0, 0);
+
+  // Set the geometry to use
+  gl.bufferData(gl.ARRAY_BUFFER, initGeometry(), gl.STATIC_DRAW);
+
+
+  // Initialize the webgl color buffer
+  var buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.enableVertexAttribArray(colorLoc);
+  gl.vertexAttribPointer(colorLoc, 3, gl.UNSIGNED_BYTE, true, 0, 0);
+
+  // Set the colors to use
+  gl.bufferData(gl.ARRAY_BUFFER, initColors(), gl.STATIC_DRAW);
+
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
+
+function initGeometry() {
+  vertices = [];
+  colors = [];
+
+  var width = 1;
+  var length = Math.sqrt(2);
+
+  // Generate the initial rectangles used to
+  // create the icosphere
+  var p11 = [-length/2, width/2, 0.0];
+  var p12 = [length/2, width/2, 0.0];
+  var p13 = [-length/2, -width/2, 0.0];
+  var p14 = [length/2, -width/2, 0.0];
+
+  var p21 = [-width/2, 0.0, length/2];
+  var p22 = [width/2, 0.0, length/2];
+  var p23 = [-width/2, 0.0, -length/2];
+  var p24 = [width/2, 0.0, -length/2];
+
+  var p31 = [0.0, -length/2, width/2];
+  var p32 = [0.0, length/2, width/2];
+  var p33 = [0.0, -length/2, -width/2];
+  var p34 = [0.0, length/2, -width/2];
+
+  console.log(p11.concat(p12, p13, p14));
+
+  return new Float32Array(p11.concat(p12, p13, p14));
+}
+
+function initColors() {
+  return new Uint8Array(
+         [100, 70, 120,
+          200, 70, 220,
+          200, 70, 20,
+          200, 170, 120]);
+}
+
+
+// WebGL setup helper functions
 
 function createProgram(gl, vertexId, fragmentId) {
   var vertexShader = createShader(gl, vertexId);
