@@ -1,7 +1,10 @@
 function renderSphere() {
   var canvas = document.getElementById('myCanvas');
   var gl = canvas.getContext('webgl');
-  // gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.DEPTH_TEST);
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
 
   var program = createProgram(gl, 'vertex-shader', 'fragment-shader');
   gl.useProgram(program);
@@ -34,7 +37,7 @@ function renderSphere() {
   // Set the colors to use
   gl.bufferData(gl.ARRAY_BUFFER, initColors(), gl.STATIC_DRAW);
 
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 
 function initGeometry() {
@@ -51,27 +54,43 @@ function initGeometry() {
   var p13 = [-length/2, -width/2, 0.0];
   var p14 = [length/2, -width/2, 0.0];
 
+  var rectangle1 = p11.concat(p12, p13, p12, p13, p14);
+
   var p21 = [-width/2, 0.0, length/2];
   var p22 = [width/2, 0.0, length/2];
   var p23 = [-width/2, 0.0, -length/2];
   var p24 = [width/2, 0.0, -length/2];
+
+  var rectangle2 = p21.concat(p22, p23, p22, p23, p24);
+
 
   var p31 = [0.0, -length/2, width/2];
   var p32 = [0.0, length/2, width/2];
   var p33 = [0.0, -length/2, -width/2];
   var p34 = [0.0, length/2, -width/2];
 
-  console.log(p11.concat(p12, p13, p14));
+  var rectangle3 = p31.concat(p32, p33, p32, p33, p34);
 
-  return new Float32Array(p11.concat(p12, p13, p14));
+  return new Float32Array(rectangle1);
 }
 
 function initColors() {
-  return new Uint8Array(
-         [100, 70, 120,
-          200, 70, 220,
-          200, 70, 20,
-          200, 170, 120]);
+  colors = [randColor(), randColor(), randColor(), randColor(), randColor(), randColor()]
+  colors = colors.reduce(function(a, b) {
+    return a.concat(b)
+  });
+
+  return new Uint8Array(colors);
+}
+
+function randColor() {
+  return [getRandomInt(0, 255), getRandomInt(0, 255), getRandomInt(0, 255)];
+}
+
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 
