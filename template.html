@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <script type="text/javascript" src="gl-matrix.js"></script>
+    <script type="text/javascript" src="utilities.js"></script>
+    <script type="text/javascript" src="renderer.js"></script>
+    <script type="x-shader/x-vertex" id="vertex-shader">
+      attribute vec4 aPosition;
+      attribute vec3 aColor;
+
+      uniform mat4 uMatrix;
+
+      varying vec3 vColor;
+
+      void main() {
+        gl_Position = uMatrix * aPosition;
+
+        vColor = aColor;
+      }
+    </script>
+
+    <script type="x-shader/x-fragment" id="fragment-shader">
+      precision mediump float;
+
+      varying vec3 vColor;
+
+      void main() {
+        gl_FragColor = vec4(vColor, 1.0);
+      }
+    </script>
+  </head>
+  <body onload="renderSphere();">
+    <div>
+      <canvas id="myCanvas" width="512" height="512" style="border:5px solid lightgray;"> </canvas>
+    </div>
+  </body>
+</html>
