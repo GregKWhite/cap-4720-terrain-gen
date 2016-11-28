@@ -1,16 +1,22 @@
 renderState = {}
+var gl, canvas, program;
+var then = 0;
+var rotation = [degToRad(90), 0, 0];
+var numVertices = 78
 
 function renderSphere() {
-  var canvas = document.getElementById('myCanvas');
-  var gl = canvas.getContext('webgl');
+  canvas = document.getElementById('myCanvas');
+  gl = canvas.getContext('webgl');
   gl.enable(gl.DEPTH_TEST);
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
   // Set up the initial state for the renderer
   renderState.angle = 0;
   renderState.rotateAngle = 0.01;
+  renderState.gl = gl;
+  renderState.canvas = canvas;
 
-  var program = createProgram(gl, 'vertex-shader', 'fragment-shader');
+  program = createProgram(gl, 'vertex-shader', 'fragment-shader');
   gl.useProgram(program);
 
   // Set up attributes
@@ -29,7 +35,10 @@ function renderSphere() {
   gl.vertexAttribPointer(positionLoc, 3, gl.FLOAT, false, 0, 0);
 
   // Set the geometry to use
-  gl.bufferData(gl.ARRAY_BUFFER, initGeometry(), gl.STATIC_DRAW);
+  renderState.geometry = initGeometry();
+  renderState.colors = initColors();
+
+  gl.bufferData(gl.ARRAY_BUFFER, renderState.geometry, gl.STATIC_DRAW);
 
   // Initialize the webgl color buffer
   var buffer = gl.createBuffer();
@@ -38,30 +47,40 @@ function renderSphere() {
   gl.vertexAttribPointer(colorLoc, 3, gl.UNSIGNED_BYTE, true, 0, 0);
 
   // Set the colors to use
-  gl.bufferData(gl.ARRAY_BUFFER, initColors(), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, renderState.colors, gl.STATIC_DRAW);
 
   // Draw the initial rectangles
-  drawScene(gl, canvas, program);
-  gl.drawArrays(gl.TRIANGLES, 0, 18);
+  requestAnimationFrame(drawScene);
 }
 
-function drawScene(gl, canvas, program) {
+function drawScene(time) {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  var angle = 60;
+  // Used for rotating the elements
+  time /= 1000.0;
+  var timeDelta = time - then;
+  console.log(time);
+  then = time;
 
   // Calculate matrices
   var aspect = canvas.width / canvas.height;
   var projectionMat = mat4.create();
   var viewMat = mat4.create();
-  this.eye = [Math.sin(0.5) * 1.5, 0.5, Math.cos(0.01) * 1.5];
+  var rotationSpeed = 30.2;
+  rotation[2] += degToRad(timeDelta * rotationSpeed) % degToRad(360);
+  rotation[1] += degToRad(timeDelta * rotationSpeed) % degToRad(360);
 
-  mat4.lookAt(viewMat, eye, [0,0,0], [0, 1.0, 0]);
-	mat4.perspective(projectionMat, degToRad(45), aspect, 0.1, 3);
+  mat4.lookAt(viewMat, [0, 0, 5], [0,0,0], [1, 1.0, 0]);
+  mat4.rotate(viewMat, viewMat, degToRad(time * rotationSpeed), [1.0, 0, 0])
+	mat4.perspective(projectionMat, degToRad(60), aspect, 0.1, Math.sqrt(3) * 2000);
 
   var matrixLoc = gl.getUniformLocation(program, 'uMatrix');
 
   gl.uniformMatrix4fv(matrixLoc, false, mat4.multiply(mat4.create(),projectionMat, viewMat));
+
+  gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+
+  requestAnimationFrame(drawScene);
 }
 
 function degToRad(deg) {
@@ -77,35 +96,74 @@ function initGeometry() {
 
   // Generate the initial rectangles used to
   // create the icosphere
-  var p11 = [-length/2, width/2, 0.0];
-  var p12 = [length/2, width/2, 0.0];
-  var p13 = [-length/2, -width/2, 0.0];
-  var p14 = [length/2, -width/2, 0.0];
+  var a1 = [-length/2, width/2, 0.0];
+  var b1 = [length/2, width/2, 0.0];
+  var c1 = [-length/2, -width/2, 0.0];
+  var d1 = [length/2, -width/2, 0.0];
 
-  var rectangle1 = p11.concat(p12, p13, p12, p13, p14);
+  var rectangle1 = a1.concat(b1, c1, c1, b1, d1);
 
-  var p21 = [-width/2, 0.0, length/2];
-  var p22 = [width/2, 0.0, length/2];
-  var p23 = [-width/2, 0.0, -length/2];
-  var p24 = [width/2, 0.0, -length/2];
+  var a2 = [-width/2, 0.0, length/2];
+  var b2 = [width/2, 0.0, length/2];
+  var c2 = [-width/2, 0.0, -length/2];
+  var d2 = [width/2, 0.0, -length/2];
 
-  var rectangle2 = p21.concat(p22, p23, p22, p23, p24);
+  var rectangle2 = a2.concat(b2, c2, c2, b2, d2);
 
 
-  var p31 = [0.0, -length/2, width/2];
-  var p32 = [0.0, length/2, width/2];
-  var p33 = [0.0, -length/2, -width/2];
-  var p34 = [0.0, length/2, -width/2];
+  var a3 = [0.0, -length/2, width/2];
+  var b3 = [0.0, length/2, width/2];
+  var c3 = [0.0, -length/2, -width/2];
+  var d3 = [0.0, length/2, -width/2];
 
-  var rectangle3 = p31.concat(p32, p33, p32, p33, p34);
+  var rectangle3 = a3.concat(b3, c3, c3, b3, d3)
 
-  return new Float32Array(rectangle1.concat(rectangle2, rectangle3));
+
+  // Make the initial 20 triangles.
+  var triangles = [
+    a2,a1,c1,
+    a2,c1,a3,
+    a2,a1,b3,
+    a2,b2,b3,
+    a2,b2,a3,
+
+    c3,a3,c1,
+    c3,a3,d1,
+    c3,c2,c1,
+    c3,d2,d1,
+    c3,d2,c2,
+
+    d3,b1,b3,
+    d3,b3,a1,
+    d3,d2,b1,
+    d3,d2,c2,
+    d3,a1,c2,
+
+    a1,c2,c1,
+    d2,b1,d1,
+    b2,a3,d1,
+    b2,d1,b1,
+    b2,b3,b1
+  ]
+
+  for (var i = 0; i < triangles.length; i++) {
+    vertices = vertices.concat(triangles[i])
+  }
+
+  return new Float32Array(rectangle1.concat(rectangle2, rectangle3, vertices));
 }
 
 function initColors() {
+  var colors = [];
 
+  for (var i = 0; i < renderState.geometry.length / 9; i++) {
+    var color1 = getRandomInt(0, 255);
+    var color2 = getRandomInt(0, 255);
+    var color3 = getRandomInt(0, 255);
 
-  return new Uint8Array(createColors().concat(createColors(), createColors()));
+    colors = colors.concat([color1, color2, color3, color1, color2, color3, color1, color2, color3])
+  }
+  return new Uint8Array(colors);
 }
 
 function createColors() {
