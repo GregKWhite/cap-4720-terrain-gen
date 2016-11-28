@@ -92,7 +92,7 @@ function initGeometry() {
   colors = [];
 
   var width = 1;
-  var length = Math.sqrt(3);
+  var length = 1.61803399;
 
   // Generate the initial rectangles used to
   // create the icosphere
