@@ -2,7 +2,9 @@ renderState = {}
 var gl, canvas, program;
 var then = 0;
 var rotation = [degToRad(90), 0, 0];
-var numVertices = 78
+var animate = true;
+var tao = (1 + Math.sqrt(5)) / 2;
+
 
 function renderSphere() {
   canvas = document.getElementById('myCanvas');
@@ -50,37 +52,45 @@ function renderSphere() {
   gl.bufferData(gl.ARRAY_BUFFER, renderState.colors, gl.STATIC_DRAW);
 
   // Draw the initial rectangles
+  document.getElementById('animationToggle').addEventListener('click', toggleAnimation);
+
   requestAnimationFrame(drawScene);
 }
 
 function drawScene(time) {
+
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   // Used for rotating the elements
   time /= 1000.0;
   var timeDelta = time - then;
-  console.log(time);
   then = time;
 
   // Calculate matrices
   var aspect = canvas.width / canvas.height;
   var projectionMat = mat4.create();
   var viewMat = mat4.create();
-  var rotationSpeed = 30.2;
+  var rotationSpeed = 30;
   rotation[2] += degToRad(timeDelta * rotationSpeed) % degToRad(360);
   rotation[1] += degToRad(timeDelta * rotationSpeed) % degToRad(360);
 
-  mat4.lookAt(viewMat, [0, 0, 5], [0,0,0], [1, 1.0, 0]);
-  mat4.rotate(viewMat, viewMat, degToRad(time * rotationSpeed), [1.0, 0, 0])
+  mat4.lookAt(viewMat, [0, 0, 2], [0,0,0], [0, 1.0, 0]);
+  mat4.rotate(viewMat, viewMat, degToRad(time * rotationSpeed), [1.0, 1, 0])
 	mat4.perspective(projectionMat, degToRad(60), aspect, 0.1, Math.sqrt(3) * 2000);
 
   var matrixLoc = gl.getUniformLocation(program, 'uMatrix');
 
   gl.uniformMatrix4fv(matrixLoc, false, mat4.multiply(mat4.create(),projectionMat, viewMat));
 
-  gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+  offset = 0;
+  gl.drawArrays(gl.TRIANGLES, offset, renderState.geometry.length / 3 - offset);
 
   requestAnimationFrame(drawScene);
+}
+
+function toggleAnimation() {
+  console.log(animate);
+  animate = !animate;
 }
 
 function degToRad(deg) {
@@ -88,11 +98,11 @@ function degToRad(deg) {
 }
 
 function initGeometry() {
-  vertices = [];
+  var vertices = [];
   colors = [];
 
   var width = 1;
-  var length = 1.61803399;
+  var length = tao;
 
   // Generate the initial rectangles used to
   // create the icosphere
@@ -101,14 +111,14 @@ function initGeometry() {
   var c1 = [-length/2, -width/2, 0.0];
   var d1 = [length/2, -width/2, 0.0];
 
-  var rectangle1 = a1.concat(b1, c1, c1, b1, d1);
+  // var vertices = vertices.concat(a1, b1, c1, c1, b1, d1);
 
   var a2 = [-width/2, 0.0, length/2];
   var b2 = [width/2, 0.0, length/2];
   var c2 = [-width/2, 0.0, -length/2];
   var d2 = [width/2, 0.0, -length/2];
 
-  var rectangle2 = a2.concat(b2, c2, c2, b2, d2);
+  // var vertices = vertices.concat(a2, b2, c2, c2, b2, d2);
 
 
   var a3 = [0.0, -length/2, width/2];
@@ -116,7 +126,7 @@ function initGeometry() {
   var c3 = [0.0, -length/2, -width/2];
   var d3 = [0.0, length/2, -width/2];
 
-  var rectangle3 = a3.concat(b3, c3, c3, b3, d3)
+  // var vertices = vertices.concat(a3, b3, c3, c3, b3, d3)
 
 
   // Make the initial 20 triangles.
@@ -126,19 +136,16 @@ function initGeometry() {
     a2,a1,b3,
     a2,b2,b3,
     a2,b2,a3,
-
     c3,a3,c1,
     c3,a3,d1,
     c3,c2,c1,
     c3,d2,d1,
     c3,d2,c2,
-
     d3,b1,b3,
     d3,b3,a1,
     d3,d2,b1,
     d3,d2,c2,
     d3,a1,c2,
-
     a1,c2,c1,
     d2,b1,d1,
     b2,a3,d1,
@@ -150,7 +157,77 @@ function initGeometry() {
     vertices = vertices.concat(triangles[i])
   }
 
-  return new Float32Array(rectangle1.concat(rectangle2, rectangle3, vertices));
+  // Interpolate over each triangle
+  for (var i = 0; i < triangles.length / 3; i++) {
+    vertices = vertices.concat(
+      subdivide(
+        triangles[i * 3],
+        triangles[i * 3+ 1],
+        triangles[i * 3 + 2]
+      )
+    );
+  }
+
+  // vertices = subdivideTriangles(vertices);
+
+  return new Float32Array(vertices);
+}
+
+function subdivideTriangles(triangles) {
+  var newTriangles = []
+
+  // // Interpolate over each triangle
+  for (var i = 0; i < triangles.length / 3; i++) {
+    newTriangles = newTriangles.concat(
+      subdivide(
+        triangles[i * 3],
+        triangles[i * 3+ 1],
+        triangles[i * 3 + 2]
+      )
+    );
+  }
+
+  return newTriangles;
+}
+
+function subdivide(point1, point2, point3) {
+  vertices = []
+
+  m12 = normalizedMidpoint(point1, point2)
+  m13 = normalizedMidpoint(point1, point3)
+  m23 = normalizedMidpoint(point2, point3)
+
+  vertices = vertices.concat(m12, m13, m23)
+  vertices = vertices.concat(point1, m12, m13)
+  vertices = vertices.concat(point2, m12, m23)
+  vertices = vertices.concat(point3, m13, m23)
+
+  return vertices;
+}
+
+function normalizedMidpoint(point1, point2) {
+  midpoint = [
+    (point1[0] + point2[0]) / 2,
+    (point1[1] + point2[1]) / 2,
+    (point1[2] + point2[2]) / 2
+  ]
+
+  console.log("p1: " + point1 + ", p2: " + point2 + ", mid: " + midpoint)
+  console.log(point1[1] + " + " + point2[1] + " / 2 = " + midpoint[1]);
+
+  radius = Math.sqrt(
+    midpoint[0] * midpoint[0] +
+    midpoint[1] * midpoint[1] +
+    midpoint[2] * midpoint[2]
+  )
+
+  // console.log(radius)
+
+  return [
+    midpoint[0] / radius,
+    midpoint[1] / radius,
+    midpoint[2] / radius
+  ]
 }
 
 function initColors() {
