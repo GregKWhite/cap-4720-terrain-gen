@@ -1,16 +1,18 @@
 renderState = {}
 var gl, canvas, program;
 var then = 0;
-var rotation = [degToRad(90), 0, 0];
-var animate = true;
 var tao = (1 + Math.sqrt(5)) / 2;
 
+var lastMousePos = [];
+var mouseIsDown = false;
+var rotationMat = mat4.create();
+mat4.identity(rotationMat, rotationMat);
 
 function renderSphere() {
   canvas = document.getElementById('myCanvas');
   gl = canvas.getContext('webgl');
   gl.enable(gl.DEPTH_TEST);
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clearColor(0.65, 0.65, 0.65, 1.0);
 
   // Set up the initial state for the renderer
   renderState.angle = 0;
@@ -18,17 +20,22 @@ function renderSphere() {
   renderState.gl = gl;
   renderState.canvas = canvas;
 
+  canvas.onmousedown = handleMouseDown;
+  document.onmouseup = handleMouseUp;
+  document.onmousemove = handleMouseMove;
+
   program = createProgram(gl, 'vertex-shader', 'fragment-shader');
   gl.useProgram(program);
 
   // Set up attributes
   var positionLoc = gl.getAttribLocation(program, 'aPosition');
   var colorLoc = gl.getAttribLocation(program, 'aColor');
-  var matrixLoc = gl.getAttribLocation(program, 'uMatrix');
 
-  // Set up uniforms
-  var resolutionLoc = gl.getUniformLocation(program, 'uResolution');
-  gl.uniform2f(resolutionLoc, canvas.width , canvas.height);
+  // Set up the uniforms
+  program.pMatrixLoc = gl.getUniformLocation(program, "uPMatrix");
+  program.mvMatrixLoc = gl.getUniformLocation(program, "uMVMatrix");
+  program.vMatrixLoc = gl.getUniformLocation(program, "uVMatrix");
+
 
   // Initialize the webgl geometry buffer
   var buffer = gl.createBuffer();
@@ -65,19 +72,19 @@ function drawScene(time) {
 
   // Calculate matrices
   var aspect = canvas.width / canvas.height;
-  var projectionMat = mat4.create();
+  var mvMat = mat4.create();
   var viewMat = mat4.create();
+  var projectionMat = mat4.create();
   var rotationSpeed = 20;
-  rotation[2] += degToRad(timeDelta * rotationSpeed) % degToRad(360);
-  rotation[1] += degToRad(timeDelta * rotationSpeed) % degToRad(360);
 
   mat4.lookAt(viewMat, [0, 0, 5], [0,0,0], [0, 1, 0]);
-  mat4.rotate(viewMat, viewMat, degToRad(time * rotationSpeed), [0, 1, 0])
+  mat4.multiply(mvMat, rotationMat, mvMat);
+  mat4.rotate(mvMat, mvMat, degToRad(time * rotationSpeed), [0, 1, 0]);
 	mat4.perspective(projectionMat, degToRad(60), aspect, 0.1, Math.sqrt(3) * 2000);
 
-  var matrixLoc = gl.getUniformLocation(program, 'uMatrix');
-
-  gl.uniformMatrix4fv(matrixLoc, false, mat4.multiply(mat4.create(),projectionMat, viewMat));
+  gl.uniformMatrix4fv(program.pMatrixLoc, false, projectionMat);
+  gl.uniformMatrix4fv(program.mvMatrixLoc, false, mvMat);
+  gl.uniformMatrix4fv(program.vMatrixLoc, false, viewMat);
 
   timeLoc = gl.getUniformLocation(program, "uTime");
   gl.uniform1f(timeLoc, time);
@@ -86,6 +93,29 @@ function drawScene(time) {
   gl.drawArrays(gl.TRIANGLES, offset, renderState.geometry.length / 3 - offset);
 
   requestAnimationFrame(drawScene);
+}
+
+function handleMouseDown(event) {
+  mouseIsDown = true;
+  lastMousePos = [event.clientX, event.clientY];
+}
+
+function handleMouseUp(event) {
+  mouseIsDown = false;
+}
+
+function handleMouseMove(event) {
+  if (!mouseIsDown) return;
+
+  deltaX = event.clientX - lastMousePos[0];
+  deltaY = event.clientY - lastMousePos[1];
+
+  var newRotMat = mat4.create()
+  mat4.identity(newRotMat);
+
+  mat4.rotate(newRotMat, newRotMat, degToRad(deltaX / 10), [0,1,0]);
+  mat4.rotate(newRotMat, newRotMat, degToRad(deltaY / 10), [1,0,0]);
+  mat4.multiply(rotationMat, newRotMat, rotationMat);
 }
 
 function degToRad(deg) {
@@ -106,22 +136,15 @@ function initGeometry() {
   var c1 = [-length/2, -width/2, 0.0];
   var d1 = [length/2, -width/2, 0.0];
 
-  // var vertices = vertices.concat(a1, b1, c1, c1, b1, d1);
-
   var a2 = [-width/2, 0.0, length/2];
   var b2 = [width/2, 0.0, length/2];
   var c2 = [-width/2, 0.0, -length/2];
   var d2 = [width/2, 0.0, -length/2];
 
-  // var vertices = vertices.concat(a2, b2, c2, c2, b2, d2);
-
-
   var a3 = [0.0, -length/2, width/2];
   var b3 = [0.0, length/2, width/2];
   var c3 = [0.0, -length/2, -width/2];
   var d3 = [0.0, length/2, -width/2];
-
-  // var vertices = vertices.concat(a3, b3, c3, c3, b3, d3)
 
 
   // Make the initial 20 triangles.
@@ -148,15 +171,7 @@ function initGeometry() {
     new triangle(b2,b3,b1)
   ]
 
-  // for (var i = 0; i < triangles.length; i++) {
-  //   vertices = vertices.concat(triangles[i])
-  // }
-
-  // Interpolate over each triangle
-  // for (var times = 0; times < 1; times++) {
-  //   vertices = subdivideTriangles(triangles)
-  // }
-
+  // Subdivide the triangles n times
   for (var times = 0; times < 3; times++) {
     triangles = subdivideTriangles(triangles)
   }
