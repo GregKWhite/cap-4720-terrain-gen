@@ -56,7 +56,6 @@ function renderSphere() {
 }
 
 function drawScene(time) {
-
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   // Used for rotating the elements
@@ -79,6 +78,9 @@ function drawScene(time) {
   var matrixLoc = gl.getUniformLocation(program, 'uMatrix');
 
   gl.uniformMatrix4fv(matrixLoc, false, mat4.multiply(mat4.create(),projectionMat, viewMat));
+
+  timeLoc = gl.getUniformLocation(program, "uTime");
+  gl.uniform1f(timeLoc, time);
 
   offset = 0;
   gl.drawArrays(gl.TRIANGLES, offset, renderState.geometry.length / 3 - offset);
