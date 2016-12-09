@@ -1,7 +1,6 @@
 renderState = {}
 var gl, canvas, program;
 var then = 0;
-var iterations = 4
 
 var lastMousePos = [];
 var mouseIsDown = false;
@@ -41,6 +40,7 @@ function renderSphere() {
   program.uLightColor = gl.getUniformLocation(program, "uLightColor");
   program.uScale = gl.getUniformLocation(program, "uScale");
   program.uFrequency = gl.getUniformLocation(program, "uFrequency");
+  program.uMinLight = gl.getUniformLocation(program, "uMinLight");
 
   // Set the random seeds to ensure a random globe each time this runs:
   program.uRandomSeedX = gl.getUniformLocation(program, "uRandomSeedX");
@@ -116,9 +116,9 @@ function drawScene(time) {
     gl.uniform1f(program.uUseLighting, 0)
   }
 
-  // Set up the noise params
-  gl.uniform1f(program.uScale, getFloatFrom('scale', 0.25))
-  gl.uniform1f(program.uFrequency, getFloatFrom('frequency', 2.0))
+  gl.uniform1f(program.uScale, getFloatFrom('scale'))
+  gl.uniform1f(program.uFrequency, getFloatFrom('frequency'))
+  gl.uniform1f(program.uMinLight, getFloatFrom('min-light'))
 
   // Set up the normal matrix
   normalMat = mat3.create();
@@ -127,8 +127,7 @@ function drawScene(time) {
   mat3.transpose(normalMat, normalMat);
   gl.uniformMatrix3fv(program.uNormalMatrix, false, normalMat);
 
-  offset = 0;
-  gl.drawArrays(gl.TRIANGLES, offset, renderState.geometry.length / 3 - offset);
+  gl.drawArrays(gl.TRIANGLES, 0, renderState.geometry.length / 3);
 
   requestAnimationFrame(drawScene);
 }
@@ -143,6 +142,8 @@ function getFloatFrom(elementId, defaultValue) {
   return parsedValue || defaultValue;
 }
 
+// Inspiration for roating came from this site:
+// http://learningwebgl.com/blog/?p=1253
 function handleMouseDown(event) {
   mouseIsDown = true;
   lastMousePos = [event.clientX, event.clientY];
@@ -179,56 +180,48 @@ function initGeometry() {
 
   // Generate the initial rectangles used to
   // create the icosphere
-  var a1 = new Point(-length/2, width/2, 0.0);
-  var b1 = new Point(length/2, width/2, 0.0);
-  var c1 = new Point(-length/2, -width/2, 0.0);
-  var d1 = new Point(length/2, -width/2, 0.0);
+  var p11 = new Point(-length/2, width/2, 0.0).normalize();
+  var p12 = new Point(length/2, width/2, 0.0).normalize();
+  var p13 = new Point(-length/2, -width/2, 0.0).normalize();
+  var p14 = new Point(length/2, -width/2, 0.0).normalize();
 
-  var a2 = new Point(-width/2, 0.0, length/2);
-  var b2 = new Point(width/2, 0.0, length/2);
-  var c2 = new Point(-width/2, 0.0, -length/2);
-  var d2 = new Point(width/2, 0.0, -length/2);
+  var p21 = new Point(-width/2, 0.0, length/2).normalize();
+  var p22 = new Point(width/2, 0.0, length/2).normalize();
+  var p23 = new Point(-width/2, 0.0, -length/2).normalize();
+  var p24 = new Point(width/2, 0.0, -length/2).normalize();
 
-  var a3 = new Point(0.0, -length/2, width/2);
-  var b3 = new Point(0.0, length/2, width/2);
-  var c3 = new Point(0.0, -length/2, -width/2);
-  var d3 = new Point(0.0, length/2, -width/2);
+  var p31 = new Point(0.0, -length/2, width/2).normalize();
+  var p32 = new Point(0.0, length/2, width/2).normalize();
+  var p33 = new Point(0.0, -length/2, -width/2).normalize();
+  var p34 = new Point(0.0, length/2, -width/2).normalize();
 
 
   // Make the initial 20 triangles.
   var triangles = [
-    new Triangle(a2,a1,c1),
-    new Triangle(a2,c1,a3),
-    new Triangle(a2,a1,b3),
-    new Triangle(a2,b2,b3),
-    new Triangle(a2,b2,a3),
-    new Triangle(c3,a3,c1),
-    new Triangle(c3,a3,d1),
-    new Triangle(c3,c2,c1),
-    new Triangle(c3,d2,d1),
-    new Triangle(c3,d2,c2),
-    new Triangle(d3,b1,b3),
-    new Triangle(d3,b3,a1),
-    new Triangle(d3,d2,b1),
-    new Triangle(d3,d2,c2),
-    new Triangle(d3,a1,c2),
-    new Triangle(a1,c2,c1),
-    new Triangle(d2,b1,d1),
-    new Triangle(b2,a3,d1),
-    new Triangle(b2,d1,b1),
-    new Triangle(b2,b3,b1)
+    new Triangle(p21,p11,p13),
+    new Triangle(p21,p13,p31),
+    new Triangle(p21,p11,p32),
+    new Triangle(p21,p22,p32),
+    new Triangle(p21,p22,p31),
+    new Triangle(p33,p31,p13),
+    new Triangle(p33,p31,p14),
+    new Triangle(p33,p23,p13),
+    new Triangle(p33,p24,p14),
+    new Triangle(p33,p24,p23),
+    new Triangle(p34,p12,p32),
+    new Triangle(p34,p32,p11),
+    new Triangle(p34,p24,p12),
+    new Triangle(p34,p24,p23),
+    new Triangle(p34,p11,p23),
+    new Triangle(p11,p23,p13),
+    new Triangle(p24,p12,p14),
+    new Triangle(p22,p31,p14),
+    new Triangle(p22,p14,p12),
+    new Triangle(p22,p32,p12)
   ]
 
-  for (var i = 0; i < triangles.length; i++) {
-    triangles[i] = new Triangle(
-      triangles[i].p1.normalize(),
-      triangles[i].p2.normalize(),
-      triangles[i].p3.normalize()
-    );
-  }
-
-  // Subdivide the triangles n times
-  for (var times = 0; times < iterations; times++) {
+  // Subdivide the triangles 4 times
+  for (var times = 0; times < 4; times++) {
     triangles = subdivideTriangles(triangles)
   }
 
