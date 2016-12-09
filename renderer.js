@@ -40,6 +40,8 @@ function renderSphere() {
   program.uLightPos = gl.getUniformLocation(program, "uLightPos");
   program.uNormalMatrix = gl.getUniformLocation(program, "uNormalMatrix");
   program.uUseLighting = gl.getUniformLocation(program, "uUseLighting");
+  program.uDiffuseCoefficient = gl.getUniformLocation(program, "uDiffuseCoefficient");
+  program.uLightColor = gl.getUniformLocation(program, "uLightColor");
 
   // Initialize the webgl geometry buffer
   var buffer = gl.createBuffer();
@@ -91,10 +93,27 @@ function drawScene(time) {
   gl.uniformMatrix4fv(program.pMatrixLoc, false, projectionMat);
   gl.uniformMatrix4fv(program.mvMatrixLoc, false, mvMat);
   gl.uniformMatrix4fv(program.vMatrixLoc, false, viewMat);
-  gl.uniform3f(program.uLightPos, 0, 0, 6);
+  gl.uniform3f(program.uLightPos, 5,2,5);
   gl.uniform1f(
     program.uUseLighting,
     document.getElementById('use-lighting').checked ? 1 : 0
+  )
+  gl.uniform1f(
+    program.uDiffuseCoefficient,
+    parseFloat(document.getElementById('diffuse-coefficient').value)
+  )
+  gl.uniform3f(
+    program.uLightPos,
+    parseFloat(document.getElementById('light-pos-x').value),
+    parseFloat(document.getElementById('light-pos-y').value),
+    parseFloat(document.getElementById('light-pos-z').value)
+  )
+
+  gl.uniform3f(
+    program.uLightColor,
+    parseFloat(document.getElementById('light-col-r').value),
+    parseFloat(document.getElementById('light-col-g').value),
+    parseFloat(document.getElementById('light-col-b').value)
   )
 
   // Set up the normal matrix

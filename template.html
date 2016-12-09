@@ -118,6 +118,8 @@
       uniform float uTime;
       uniform vec3 uLightPos;
       uniform bool uUseLighting;
+      uniform float uDiffuseCoefficient;
+      uniform vec3 uLightColor;
 
       varying vec3 vColor;
 
@@ -146,10 +148,12 @@
         gl_Position = uPMatrix * uMVMatrix * newPoint;
 
         // If we're on land:
-        if (offset > 0.5) {
-          vColor = fromRgb(105, 105, 105); // dark grey
-        } else if (offset > 0.0) {
-          vColor = fromRgb(0, 100, 0); // dark green
+        if (offset > 0.0) {
+          if (offset > 0.5) {
+            vColor = fromRgb(105, 105, 105); // dark grey
+          } else {
+            vColor = fromRgb(0, 100, 0); // dark green
+          }
         }
 
         // We're underwater now!
@@ -171,10 +175,9 @@
         if (uUseLighting) {
           vec3 newNormal = uNormalMatrix * normal.xyz;
           vec4 mvPosition = uMVMatrix * aPosition;
-          vec3 lightDirection = vec3(5, 2, 5);
-          vec3 normalizedLight = normalize(lightDirection - mvPosition.xyz);
+          vec3 normalizedLight = normalize(uLightPos - mvPosition.xyz);
           float diffuse = max(dot(newNormal, normalizedLight), 0.2);
-          vColor *= diffuse;
+          vColor *= uDiffuseCoefficient * diffuse * uLightColor;
         }
       }
     </script>
@@ -195,8 +198,31 @@
     <div>
       <canvas id="myCanvas" width="640px" height="640px" style="border:5px solid lightgray;"> </canvas>
 
+
+
+      <h3> Lighting </h3>
       <br>
       <input type="checkbox" id="use-lighting" checked> Use Lighting
+
+      <br>
+      <table>
+        <tr>
+          <td>Light Location: </td>
+          <td>X: <input id='light-pos-x' value='1'></td>
+          <td>Y: <input id='light-pos-y' value='1'></td>
+          <td>Z: <input id='light-pos-z' value='1'></td>
+        </tr>
+        <tr>
+          <td>Light Color: </td>
+          <td>R: <input id='light-col-r' value='1'></td>
+          <td>G: <input id='light-col-g' value='1'></td>
+          <td>B: <input id='light-col-b' value='1'></td>
+        </tr>
+      </table>
+
+
+      <br>
+      <input type="float" id="diffuse-coefficient" value="1.0"> Diffuse Coefficient
     </div>
   </body>
 </html>
