@@ -39,6 +39,7 @@ function renderSphere() {
   program.vMatrixLoc = gl.getUniformLocation(program, "uVMatrix");
   program.uLightPos = gl.getUniformLocation(program, "uLightPos");
   program.uNormalMatrix = gl.getUniformLocation(program, "uNormalMatrix");
+  program.uUseLighting = gl.getUniformLocation(program, "uUseLighting");
 
   // Initialize the webgl geometry buffer
   var buffer = gl.createBuffer();
@@ -91,6 +92,10 @@ function drawScene(time) {
   gl.uniformMatrix4fv(program.mvMatrixLoc, false, mvMat);
   gl.uniformMatrix4fv(program.vMatrixLoc, false, viewMat);
   gl.uniform3f(program.uLightPos, 0, 0, 6);
+  gl.uniform1f(
+    program.uUseLighting,
+    document.getElementById('use-lighting').checked ? 1 : 0
+  )
 
   // Set up the normal matrix
   normalMat = mat3.create();
