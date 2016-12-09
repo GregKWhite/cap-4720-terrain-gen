@@ -1,7 +1,6 @@
 renderState = {}
 var gl, canvas, program;
 var then = 0;
-var tao = (1 + Math.sqrt(5)) / 1;
 var iterations = 4
 
 var lastMousePos = [];
@@ -31,7 +30,6 @@ function renderSphere() {
 
   // Set up attributes
   var positionLoc = gl.getAttribLocation(program, 'aPosition');
-  var colorLoc = gl.getAttribLocation(program, 'aColor');
 
   // Set up the uniforms
   program.pMatrixLoc = gl.getUniformLocation(program, "uPMatrix");
@@ -60,21 +58,12 @@ function renderSphere() {
   gl.vertexAttribPointer(positionLoc, 3, gl.FLOAT, false, 0, 0);
 
   // Set the geometry to use
+  console.time('initGeometry')
   renderState.geometry = initGeometry();
-  renderState.colors = initColors();
+  console.timeEnd('initGeometry')
 
   gl.bufferData(gl.ARRAY_BUFFER, renderState.geometry, gl.STATIC_DRAW);
 
-  // Initialize the webgl color buffer
-  var buffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.enableVertexAttribArray(colorLoc);
-  gl.vertexAttribPointer(colorLoc, 3, gl.UNSIGNED_BYTE, true, 0, 0);
-
-  // Set the colors to use
-  gl.bufferData(gl.ARRAY_BUFFER, renderState.colors, gl.STATIC_DRAW);
-
-  console.log(renderState.geometry.length);
   // Draw the initial rectangles
   requestAnimationFrame(drawScene);
 }
@@ -295,51 +284,18 @@ function normalizedMidpoint(point1, point2) {
 }
 
 function normalize(points) {
-  radius = Math.sqrt(
+  magnitude = Math.sqrt(
     points[0] * points[0] +
     points[1] * points[1] +
     points[2] * points[2]
   )
 
   return [
-    points[0] / radius,
-    points[1] / radius,
-    points[2] / radius
+    points[0] / magnitude,
+    points[1] / magnitude,
+    points[2] / magnitude
   ]
 }
-
-function initColors() {
-  var colors = [];
-
-  for (var i = 0; i < renderState.geometry.length / 9; i++) {
-    var color1 =  getRandomInt(0, 255);
-    var color2 =  getRandomInt(0, 255);
-    var color3 =  getRandomInt(0, 255);
-
-    colors = colors.concat([color1, color2, color3, color1, color2, color3, color1, color2, color3])
-  }
-  return new Uint8Array(colors);
-}
-
-function createColors() {
-  colors = [randColor(), randColor(), randColor(), randColor(), randColor(), randColor()]
-  colors = colors.reduce(function(a, b) {
-    return a.concat(b)
-  });
-
-  return colors;
-}
-
-function randColor() {
-  return [getRandomInt(0, 255), getRandomInt(0, 255), getRandomInt(0, 255)];
-}
-
-function getRandomInt(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min)) + min;
-}
-
 
 // WebGL setup helper functions
 

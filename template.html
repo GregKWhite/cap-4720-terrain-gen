@@ -109,7 +109,6 @@
   }
 
       attribute vec4 aPosition;
-      attribute vec3 aColor;
 
       uniform mat4 uVMatrix;
       uniform mat4 uMVMatrix;
@@ -140,9 +139,10 @@
         ));
 
         // Generate an offset factor. We will make this
-        // value between 0.75 and 1.25
+        // value between 1 - scale and 1 + scale, inclusive
         float factor = 1.0 + offset * uScale;
 
+        // Deform the vertex along its normal
         vec4 newPoint = aPosition;
         vec4 normal = normalize(aPosition);
         newPoint.x = newPoint.x + factor * normal.x;
@@ -176,6 +176,7 @@
           vColor = fromRgb(220, 220, 220) * smoothstep(0.75, 1.0, abs(aPosition.y));
         }
 
+        // Only calculate per-vertex shading if the user wants it
         if (uUseLighting) {
           vec3 newNormal = uNormalMatrix * normal.xyz;
           vec4 mvPosition = uMVMatrix * aPosition;
@@ -183,6 +184,7 @@
           float diffuse = max(dot(newNormal, normalizedLight), 0.2);
           vColor *= uDiffuseCoefficient * diffuse * uLightColor;
         }
+
       }
     </script>
 
@@ -231,6 +233,32 @@
 
       <br>
       Frequency: <input id='frequency' value='2.0'>
+
+      <br>
+
+      <h3> Description </h3>
+      <p>
+        This is a 3d world generator! Every time you refresh the page, you
+        should see a new randomly generated world. Higher points will be colored grey,
+        like moutains. All other land will be colored green. Lower points will be
+        colored blue, in order to resemble oceans, with the lowest parts being a darker
+        blue than the rest. I decided to color the north/south poles white to resemble ice,
+        like on Earth.
+
+        <br>
+        <br>
+
+
+        You can mess with some parameters above to give your world a new personality.
+        Change the light color to alter the color of the landscape. Change the light intensity
+        to brighten/darken your planet.
+
+        <br>
+        <br>
+
+        You can add more (albeit jagged) mountains by increasing the frequency. You can also
+        increase the height/depth of the deformations by modifying the scale (a little bit goes a long way!)
+      </p>
     </div>
   </body>
 </html>
