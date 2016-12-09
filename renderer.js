@@ -42,6 +42,16 @@ function renderSphere() {
   program.uUseLighting = gl.getUniformLocation(program, "uUseLighting");
   program.uDiffuseCoefficient = gl.getUniformLocation(program, "uDiffuseCoefficient");
   program.uLightColor = gl.getUniformLocation(program, "uLightColor");
+  program.uScale = gl.getUniformLocation(program, "uScale");
+  program.uFrequency = gl.getUniformLocation(program, "uFrequency");
+
+  // Set the random seeds to ensure a random globe each time this runs:
+  program.uRandomSeedX = gl.getUniformLocation(program, "uRandomSeedX");
+  program.uRandomSeedY = gl.getUniformLocation(program, "uRandomSeedY");
+  program.uRandomSeedZ = gl.getUniformLocation(program, "uRandomSeedZ");
+  gl.uniform1f(program.uRandomSeedX, Math.random() * 10);
+  gl.uniform1f(program.uRandomSeedY, Math.random() * 10);
+  gl.uniform1f(program.uRandomSeedZ, Math.random() * 10);
 
   // Initialize the webgl geometry buffer
   var buffer = gl.createBuffer();
@@ -84,7 +94,7 @@ function drawScene(time) {
   var projectionMat = mat4.create();
   var rotationSpeed = 5;
 
-  mat4.lookAt(viewMat, [0, 0, 5], [0,0,0], [0, 1, 0]);
+  mat4.lookAt(viewMat, [0, 0, 4], [0,0,0], [0, 1, 0]);
   mat4.multiply(mvMat, rotationMat, mvMat);
   mat4.rotate(mvMat, mvMat, degToRad(time * rotationSpeed), [0, 1, 0]);
   mat4.multiply(mvMat, viewMat, mvMat);
@@ -93,44 +103,56 @@ function drawScene(time) {
   gl.uniformMatrix4fv(program.pMatrixLoc, false, projectionMat);
   gl.uniformMatrix4fv(program.mvMatrixLoc, false, mvMat);
   gl.uniformMatrix4fv(program.vMatrixLoc, false, viewMat);
-  gl.uniform3f(program.uLightPos, 5,2,5);
-  gl.uniform1f(
-    program.uUseLighting,
-    document.getElementById('use-lighting').checked ? 1 : 0
-  )
-  gl.uniform1f(
-    program.uDiffuseCoefficient,
-    parseFloat(document.getElementById('diffuse-coefficient').value)
-  )
-  gl.uniform3f(
-    program.uLightPos,
-    parseFloat(document.getElementById('light-pos-x').value),
-    parseFloat(document.getElementById('light-pos-y').value),
-    parseFloat(document.getElementById('light-pos-z').value)
-  )
 
-  gl.uniform3f(
-    program.uLightColor,
-    parseFloat(document.getElementById('light-col-r').value),
-    parseFloat(document.getElementById('light-col-g').value),
-    parseFloat(document.getElementById('light-col-b').value)
-  )
+  // Only set up lighting if the user wants it
+  if (document.getElementById('use-lighting').checked) {
+    gl.uniform1f(program.uUseLighting, 1)
+    gl.uniform1f(
+      program.uDiffuseCoefficient,
+      parseFloat(document.getElementById('diffuse-coefficient').value)
+    )
+    gl.uniform3f(
+      program.uLightPos,
+      getFloatFrom('light-pos-x'),
+      getFloatFrom('light-pos-y'),
+      getFloatFrom('light-pos-z')
+    )
+
+    gl.uniform3f(
+      program.uLightColor,
+      getFloatFrom('light-col-r'),
+      getFloatFrom('light-col-g'),
+      getFloatFrom('light-col-b')
+    )
+  } else {
+    gl.uniform1f(program.uUseLighting, 0)
+  }
+
+  // Set up the noise params
+  gl.uniform1f(program.uScale, getFloatFrom('scale', 0.25))
+  gl.uniform1f(program.uFrequency, getFloatFrom('frequency', 2.0))
 
   // Set up the normal matrix
   normalMat = mat3.create();
   mat3.fromMat4(normalMat, mvMat);
   mat3.invert(normalMat, normalMat);
   mat3.transpose(normalMat, normalMat);
-  // console.log(normalMat);
   gl.uniformMatrix3fv(program.uNormalMatrix, false, normalMat);
-
-  timeLoc = gl.getUniformLocation(program, "uTime");
-  gl.uniform1f(timeLoc, time);
 
   offset = 0;
   gl.drawArrays(gl.TRIANGLES, offset, renderState.geometry.length / 3 - offset);
 
   requestAnimationFrame(drawScene);
+}
+
+function getFloatFrom(elementId, defaultValue) {
+  parsedValue = parseFloat(document.getElementById(elementId).value);
+
+  if (typeof defaultValue === "undefined") {
+    defaultValue = 0
+  }
+
+  return parsedValue || defaultValue;
 }
 
 function handleMouseDown(event) {
