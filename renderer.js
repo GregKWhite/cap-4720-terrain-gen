@@ -1,7 +1,8 @@
 renderState = {}
 var gl, canvas, program;
 var then = 0;
-var tao = (1 + Math.sqrt(5)) / 2;
+var tao = (1 + Math.sqrt(5)) / 1;
+var iterations = 4
 
 var lastMousePos = [];
 var mouseIsDown = false;
@@ -12,7 +13,8 @@ function renderSphere() {
   canvas = document.getElementById('myCanvas');
   gl = canvas.getContext('webgl');
   gl.enable(gl.DEPTH_TEST);
-  gl.clearColor(0.65, 0.65, 0.65, 1.0);
+  gl.clearColor(0.7, 0.7, 0.7, 1.0);
+  gl.clearColor(0, 0, 0, 1);
 
   // Set up the initial state for the renderer
   renderState.angle = 0;
@@ -35,7 +37,8 @@ function renderSphere() {
   program.pMatrixLoc = gl.getUniformLocation(program, "uPMatrix");
   program.mvMatrixLoc = gl.getUniformLocation(program, "uMVMatrix");
   program.vMatrixLoc = gl.getUniformLocation(program, "uVMatrix");
-
+  program.uLightPos = gl.getUniformLocation(program, "uLightPos");
+  program.uNormalMatrix = gl.getUniformLocation(program, "uNormalMatrix");
 
   // Initialize the webgl geometry buffer
   var buffer = gl.createBuffer();
@@ -58,6 +61,7 @@ function renderSphere() {
   // Set the colors to use
   gl.bufferData(gl.ARRAY_BUFFER, renderState.colors, gl.STATIC_DRAW);
 
+  console.log(renderState.geometry.length);
   // Draw the initial rectangles
   requestAnimationFrame(drawScene);
 }
@@ -75,16 +79,26 @@ function drawScene(time) {
   var mvMat = mat4.create();
   var viewMat = mat4.create();
   var projectionMat = mat4.create();
-  var rotationSpeed = 20;
+  var rotationSpeed = 5;
 
   mat4.lookAt(viewMat, [0, 0, 5], [0,0,0], [0, 1, 0]);
   mat4.multiply(mvMat, rotationMat, mvMat);
   mat4.rotate(mvMat, mvMat, degToRad(time * rotationSpeed), [0, 1, 0]);
+  mat4.multiply(mvMat, viewMat, mvMat);
 	mat4.perspective(projectionMat, degToRad(60), aspect, 0.1, Math.sqrt(3) * 2000);
 
   gl.uniformMatrix4fv(program.pMatrixLoc, false, projectionMat);
   gl.uniformMatrix4fv(program.mvMatrixLoc, false, mvMat);
   gl.uniformMatrix4fv(program.vMatrixLoc, false, viewMat);
+  gl.uniform3f(program.uLightPos, 0, 0, 6);
+
+  // Set up the normal matrix
+  normalMat = mat3.create();
+  mat3.fromMat4(normalMat, mvMat);
+  mat3.invert(normalMat, normalMat);
+  mat3.transpose(normalMat, normalMat);
+  // console.log(normalMat);
+  gl.uniformMatrix3fv(program.uNormalMatrix, false, normalMat);
 
   timeLoc = gl.getUniformLocation(program, "uTime");
   gl.uniform1f(timeLoc, time);
@@ -113,8 +127,8 @@ function handleMouseMove(event) {
   var newRotMat = mat4.create()
   mat4.identity(newRotMat);
 
-  mat4.rotate(newRotMat, newRotMat, degToRad(deltaX / 10), [0,1,0]);
-  mat4.rotate(newRotMat, newRotMat, degToRad(deltaY / 10), [1,0,0]);
+  mat4.rotate(newRotMat, newRotMat, degToRad(deltaX / 30), [0,1,0]);
+  mat4.rotate(newRotMat, newRotMat, degToRad(deltaY / 30), [1,0,0]);
   mat4.multiply(rotationMat, newRotMat, rotationMat);
 }
 
@@ -127,7 +141,7 @@ function initGeometry() {
   colors = [];
 
   var width = 1;
-  var length = tao;
+  var length = Math.sqrt(3);
 
   // Generate the initial rectangles used to
   // create the icosphere
@@ -171,8 +185,16 @@ function initGeometry() {
     new triangle(b2,b3,b1)
   ]
 
+  for (var i = 0; i < triangles.length; i++) {
+    triangles[i] = new triangle(
+      normalize(triangles[i].p1),
+      normalize(triangles[i].p2),
+      normalize(triangles[i].p3)
+    );
+  }
+
   // Subdivide the triangles n times
-  for (var times = 0; times < 3; times++) {
+  for (var times = 0; times < iterations; times++) {
     triangles = subdivideTriangles(triangles)
   }
 
@@ -223,16 +245,20 @@ function normalizedMidpoint(point1, point2) {
     (point1[2] + point2[2]) / 2
   ]
 
+  return normalize(midpoint);
+}
+
+function normalize(points) {
   radius = Math.sqrt(
-    midpoint[0] * midpoint[0] +
-    midpoint[1] * midpoint[1] +
-    midpoint[2] * midpoint[2]
+    points[0] * points[0] +
+    points[1] * points[1] +
+    points[2] * points[2]
   )
 
   return [
-    midpoint[0] / radius,
-    midpoint[1] / radius,
-    midpoint[2] / radius
+    points[0] / radius,
+    points[1] / radius,
+    points[2] / radius
   ]
 }
 
@@ -240,9 +266,9 @@ function initColors() {
   var colors = [];
 
   for (var i = 0; i < renderState.geometry.length / 9; i++) {
-    var color1 = getRandomInt(0, 255);
-    var color2 = getRandomInt(0, 255);
-    var color3 = getRandomInt(0, 255);
+    var color1 =  getRandomInt(0, 255);
+    var color2 =  getRandomInt(0, 255);
+    var color3 =  getRandomInt(0, 255);
 
     colors = colors.concat([color1, color2, color3, color1, color2, color3, color1, color2, color3])
   }
