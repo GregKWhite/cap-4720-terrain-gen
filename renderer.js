@@ -41,6 +41,7 @@ function renderSphere() {
   program.uScale = gl.getUniformLocation(program, "uScale");
   program.uFrequency = gl.getUniformLocation(program, "uFrequency");
   program.uMinLight = gl.getUniformLocation(program, "uMinLight");
+  program.uHeightOffset = gl.getUniformLocation(program, "uHeightOffset");
 
   // Set the random seeds to ensure a random globe each time this runs:
   program.uRandomSeedX = gl.getUniformLocation(program, "uRandomSeedX");
@@ -119,6 +120,7 @@ function drawScene(time) {
   gl.uniform1f(program.uScale, getFloatFrom('scale'))
   gl.uniform1f(program.uFrequency, getFloatFrom('frequency'))
   gl.uniform1f(program.uMinLight, getFloatFrom('min-light'))
+  gl.uniform1f(program.uHeightOffset, getFloatFrom('height-offset'))
 
   // Set up the normal matrix
   normalMat = mat3.create();

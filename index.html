@@ -119,6 +119,7 @@
       uniform float uRandomSeedZ;
       uniform float uScale;
       uniform float uFrequency;
+      uniform float uHeightOffset;
 
       varying vec3 vColor;
       varying vec3 vNormal;
@@ -134,7 +135,7 @@
           uFrequency * aPosition.x + uRandomSeedX,
           uFrequency * aPosition.y + uRandomSeedY,
           uFrequency * aPosition.z + uRandomSeedZ
-        ));
+        )) + uHeightOffset;
 
         // Generate an offset factor. We will make this
         // value between 1 - scale and 1 + scale, inclusive
@@ -232,6 +233,9 @@
       Minimum Light: <input type="float" id="min-light" value="0.1">
 
       <h3> Noise Parameters </h3>
+
+      <br>
+      Height Offset: <input id='height-offset' value='0.0'>
 
       <br>
       Scale: <input id='scale' value='0.25'>
