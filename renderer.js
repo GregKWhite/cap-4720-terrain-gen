@@ -108,10 +108,10 @@ function drawScene(time) {
 
     gl.uniform3f(
       program.uLightColor,
-      getFloatFrom('light-col-r'),
-      getFloatFrom('light-col-g'),
-      getFloatFrom('light-col-b')
-    )
+      1.0,
+      1.0,
+      1.0
+    );
   } else {
     gl.uniform1f(program.uUseLighting, 0)
   }

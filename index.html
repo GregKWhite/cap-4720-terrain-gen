@@ -154,7 +154,7 @@
           if (offset > 0.5) {
             vColor = fromRgb(105, 105, 105); // dark grey
           } else {
-            vColor = fromRgb(0, 100, 0); // dark green
+            vColor = fromRgb(0, 100, 0) * (offset + 0.5); // dark green
           }
         }
 
@@ -225,12 +225,6 @@
           <td>Y: <input id='light-pos-y' value='5'></td>
           <td>Z: <input id='light-pos-z' value='5'></td>
         </tr>
-        <tr>
-          <td>Light Color: </td>
-          <td>R: <input id='light-col-r' value='1'></td>
-          <td>G: <input id='light-col-g' value='1'></td>
-          <td>B: <input id='light-col-b' value='1'></td>
-        </tr>
       </table>
 
       Light Intensity: <input type="float" id="diffuse-coefficient" value="2.0">
@@ -260,15 +254,12 @@
         <br>
 
 
-        You can mess with some parameters above to give your world a new personality.
-        Change the light color to alter the color of the landscape. Change the light intensity
-        to brighten/darken your planet.
+        You can mess with some parameters above to give your world a new
+        personality.  Change the light intensity to brighten/darken your
+        planet.  You can add more (albeit jagged) mountains by increasing the
+        frequency. You can also increase the height/depth of the deformations
+        by modifying the scale (a little bit goes a long way!)
 
-        <br>
-        <br>
-
-        You can add more (albeit jagged) mountains by increasing the frequency. You can also
-        increase the height/depth of the deformations by modifying the scale (a little bit goes a long way!)
       </p>
     </div>
   </body>
